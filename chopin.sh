@@ -5,14 +5,19 @@ EXCLUDE_FILES="webxdc.js *.sh *.xdc *~"
 
 function usage () {
     echo "Usage: ${0} [-hgp]"
-    echo "  -h                  Display this message"
-    echo "  -g                  Add pre-commit hook which formats and lints code"
-    echo "  -p                  Optimize all files and pack the project as a WebXDC"
+    echo "  -h   Display this message"
+    echo "  -l   Format and lint source files manually"
+    echo "  -g   Add pre-commit hook which formats and lints code"
+    echo "  -p   Optimize all files and pack the project as a WebXDC"
     exit -1
 }
 
 function add_pre_commit_hook () {
     echo "Not implemented."
+    :
+}
+
+function format_and_lint () {
     :
 }
 
@@ -32,17 +37,30 @@ function extract_toml () {
 function webxdc_create () {
     [[ ! -f ./index.html ]] && echo "Webxdc requires it's apps to have AT LEAST an index.html. Aborting." && exit -1
 
-    # This doesn't work if source code is in a seperate directory. The
-    # culprit is cp. Should use find or something and preserve
-    # directories. In essence, this should find all source files and
-    # preserve their parent directories in the temp/ directory.
+    mkdir temp
+    
     if [[ -x "$(command -v minify)" ]]; then
 	echo "Minifying all source files."
-	mkdir temp
-	cp -r *.html *.css *.js temp/
+	cp --parents -r *.html *.css *.js temp/
 	minify -r *.html *.js *.css -o ./
     else
-	echo "minify command not found. Proceeding without minifying."
+	echo "minify command not found. Proceeding without minifying source code."
+    fi
+
+    if [[ -x "$(command -v jpegoptim)" ]]; then
+	echo "Loslessly optimizing all JPEG files."
+	# TODO: perhaps do this like minifying, as not to replace the
+	# original images?
+	find . \( -iname "*.jpg" -or -iname "*.jpeg" \) -exec jpegoptim -f --strip-all {} \;
+    else
+	echo "jpegoptim not found. Not optimizing any JPEG files."
+    fi
+
+    if [[ -x "$(command -v optipng)" ]]; then
+	echo "Loslessly optimizing all PNG files."
+	find . -iname "*.png" -exec optipng -strip all {} \;
+    else
+	echo "optipng not found. Not optimizing any PNG files."
     fi
     
     echo "Removing all existing xdc packages."
@@ -70,10 +88,13 @@ function webxdc_create () {
 }
 
 [[ "$#" -eq 0 ]] && usage
-while getopts ":hgp" option; do
+while getopts ":hgpl" option; do
     case ${option} in
 	h)
 	    usage
+	    ;;
+	l)
+	    format_and_lint
 	    ;;
 	g)
 	    add_pre_commit_hook
