@@ -12,6 +12,7 @@ function usage () {
 }
 
 function add_pre_commit_hook () {
+    echo "Not implemented."
     :
 }
 
