@@ -19,6 +19,7 @@ function add_pre_commit_hook () {
 
 function lint_and_format () {
     if [[ -x "$(command -v rslint)" ]]; then
+	echo "Linting JavaScript source files."
 	find . -iname "*.js" -exec rslint -f {} \;
     else
 	echo "rslint not found. Cannot lint source."
@@ -26,6 +27,7 @@ function lint_and_format () {
     fi
 
     if [[ -x "$(command -v js-beautify)" ]]; then
+	echo "Formatting JavaScript source files."
 	find . -iname "*.js" -exec js-beautify -r {} \;
     else
 	echo "js-beautify not found. Cannot format source."
