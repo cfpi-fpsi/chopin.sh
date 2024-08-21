@@ -6,10 +6,10 @@ EXCLUDE_FILES="webxdc.js *.sh *.xdc *~"
 function usage () {
     echo "Usage: ${0} [-hgp]"
     echo "  -h   Display this message"
-    echo "  -l   Format and lint source files manually"
+    echo "  -f   Lint and format all source files"
     echo "  -g   Add pre-commit hook which formats and lints code"
     echo "  -p   Optimize all files and pack the project as a WebXDC"
-    exit -1
+    exit 0
 }
 
 function add_pre_commit_hook () {
@@ -17,8 +17,21 @@ function add_pre_commit_hook () {
     :
 }
 
-function format_and_lint () {
-    :
+function lint_and_format () {
+    if [[ -x "$(command -v rslint)" ]]; then
+	find . -iname "*.js" -exec rslint -f {} \;
+    else
+	echo "rslint not found. Cannot lint source."
+	return -1
+    fi
+
+    if [[ -x "$(command -v js-beautify)" ]]; then
+	find . -iname "*.js" -exec js-beautify -r {} \;
+    else
+	echo "js-beautify not found. Cannot format source."
+	return -1
+    fi
+
 }
 
 # $1 - filename
@@ -88,13 +101,13 @@ function webxdc_create () {
 }
 
 [[ "$#" -eq 0 ]] && usage
-while getopts ":hgpl" option; do
+while getopts ":hgpf" option; do
     case ${option} in
 	h)
 	    usage
 	    ;;
-	l)
-	    format_and_lint
+	f)
+	    lint_and_format
 	    ;;
 	g)
 	    add_pre_commit_hook
