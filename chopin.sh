@@ -29,15 +29,43 @@ function extract_toml () {
 }
 
 function webxdc_create () {
-    echo "Creating WebXDC package."
-    echo "Removing all existing XDC packages."
+    [[ ! -f ./index.html ]] && echo "Webxdc requires it's apps to have AT LEAST an index.html. Aborting." && exit -1
+
+    # This doesn't work if source code is in a seperate directory. The
+    # culprit is cp. Should use find or something and preserve
+    # directories. In essence, this should find all source files and
+    # preserve their parent directories in the temp/ directory.
+    if [[ -x "$(command -v minify)" ]]; then
+	echo "Minifying all source files."
+	mkdir temp
+	cp -r *.html *.css *.js temp/
+	minify -r *.html *.js *.css -o ./
+    else
+	echo "minify command not found. Proceeding without minifying."
+    fi
+    
+    echo "Removing all existing xdc packages."
     rm -f *.xdc
 
-    echo "Extracting name from manifest.toml."
-    [[ -f ./manifest.toml ]] && extract_toml manifest.toml
-    
-    echo "Packing project into an XDC package."
-    zip -9 --recurse-paths "${name}.xdc" --exclude $EXCLUDE_FILES -- * > /dev/null
+    if [[ -f ./manifest.toml ]]; then
+	echo "Extracting name from manifest.toml."
+	extract_toml manifest.toml
+    else
+	echo "No manifest.toml found. Using default application name."
+    fi
+
+    if [[ -x "$(command -v zip)" ]]; then
+	echo "Packing project into an xdc package."
+	zip -9 --recurse-paths "${name}.xdc" --exclude $EXCLUDE_FILES -- * > /dev/null
+	echo "Output: ${name}.xdc."
+	mv temp/* .
+	rmdir temp
+    else
+	echo "The program zip could not be found. It is required to pack Webxdc applications. Aborting."
+	exit -1
+	mv temp/* .
+	rmdir temp
+    fi
 }
 
 [[ "$#" -eq 0 ]] && usage
